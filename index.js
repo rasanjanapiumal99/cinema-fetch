@@ -2,7 +2,34 @@ const express = require('express');
 const cron = require('node-cron');
 const axios = require('axios');
 const app = express();
-const PORT = process.env.PORT || 8000; // Use Koyeb's PORT or fallback to 8000
+const net = require('net');
+const PORT = process.env.PORT || 8000;
+
+async function checkPort() {
+  return new Promise((resolve) => {
+    const server = net.createServer()
+      .once('error', () => resolve(false))
+      .once('listening', () => {
+        server.close();
+        resolve(true);
+      })
+      .listen(PORT);
+  });
+}
+
+async function startApp() {
+  const isPortAvailable = await checkPort();
+  if (!isPortAvailable) {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+startApp();
 
 // Import script modules
 const tv2Script = require('./scripts/tv2');
