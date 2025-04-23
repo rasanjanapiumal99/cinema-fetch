@@ -2,7 +2,7 @@ const express = require('express');
 const cron = require('node-cron');
 const axios = require('axios');
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000; // Use Koyeb's PORT or fallback to 8000
 
 // Import script modules
 const tv2Script = require('./scripts/tv2');
@@ -11,16 +11,7 @@ const mv2Script = require('./scripts/mv2');
 
 // Health check endpoint
 app.get('/', (req, res) => {
-  res.json({
-    status: 'running',
-    message: 'Script runner service is operational',
-    endpoints: {
-      executeAll: '/execute-all',
-      executeTv2: '/execute-tv2',
-      executeMini2: '/execute-mini2',
-      executeMv2: '/execute-mv2'
-    }
-  });
+  res.status(200).json({ status: 'healthy' });
 });
 
 // Manual execution endpoints
@@ -77,6 +68,27 @@ cron.schedule('0 3 * * *', async () => {
   } catch (error) {
     console.error('Error executing scripts:', error);
   }
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+});
+
+// Add before app.listen()
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
 
 app.listen(PORT, () => {
